@@ -7,6 +7,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import OrganizerDashboard from './pages/organizer/Dashboard';
+import EditEvent from './pages/EditEvent';
+import AdminVerificationPage from './pages/AdminVerificationPage';
+import PaymentPage from './pages/PaymentPage';
 
 function App() {
   return (
@@ -19,10 +22,16 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/transactions/:id" element={<PaymentPage />} />
         </Route>
 
         <Route element={<ProtectedRoute allowedRoles={['ORGANIZER']} />}>
           <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
+          <Route path="/organizer/event/:id/edit" element={<EditEvent />} />
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={['ORGANIZER']} />}>
+          <Route path="/admin/verification" element={<AdminVerificationPage />} />
         </Route>
       </Routes>
     </Layout>

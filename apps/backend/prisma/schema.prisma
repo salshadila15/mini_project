@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,10 +6,14 @@ datasource db {
   provider = "postgresql"
 }
 
-model Example {
-  id   Int    @id @default(autoincrement())
-  name String
+enum UserRole {
+  CUSTOMER
+  ORGANIZER
+}
 
+model Example {
+  id        Int      @id @default(autoincrement())
+  name      String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -23,11 +21,128 @@ model Example {
 }
 
 model User {
-  id   Int    @id @default(autoincrement())
-  name String
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  role         UserRole @default(CUSTOMER)
+  referralCode String   @unique @map("referral_code")
+  referredById Int?     @map("referred_by_id")
+  referredBy   User?    @relation("UserReferrals", fields: [referredById], references: [id])
+  referrals    User[]   @relation("UserReferrals")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  eventRegistrations EventRegistration[]
+  pointEntries       PointEntry[]
+  discountCoupons    DiscountCoupon[]
+  organizedEvents    Event[]           @relation("OrganizerEvents")
+  eventReviews       EventReview[]
+  transactions        Transaction[]
 
   @@map("users")
+}
+
+model PointEntry {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount     Int
+  usedAmount Int      @default(0) @map("used_amount")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("point_entries")
+}
+
+model DiscountCoupon {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  percent   Int
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("discount_coupons")
+}
+
+model Event {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String
+  price          Int
+  date           DateTime
+  location       String
+  category       String
+  availableSeats Int
+  organizerId    Int      @map("organizer_id")
+  organizer      User     @relation("OrganizerEvents", fields: [organizerId], references: [id], onDelete: Cascade)
+  image          String?
+  registrations  EventRegistration[]
+  reviews        EventReview[]
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  transactions    Transaction[]
+
+  @@map("events")
+}
+
+model EventRegistration {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  eventId    Int      @map("event_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  quantity   Int
+  price      Int
+  totalPrice Int      @map("total_price")
+  couponId   Int?     @map("coupon_id")
+  pointsUsed Int      @default(0) @map("points_used")
+  status     String   @default("active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("event_registrations")
+}
+
+model EventReview {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  eventId     Int      @map("event_id")
+  rating      Int
+  title       String
+  description String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, eventId])
+  @@map("event_reviews")
+}
+
+enum TransactionStatus {
+  PENDING
+  WAITING_VERIFICATION
+  SUCCESS
+  CANCELLED
+  FAILED
+}
+
+model Transaction {
+  id          Int               @id @default(autoincrement())
+  userId      Int               @map("user_id")
+  eventId     Int               @map("event_id")
+  quantity    Int
+  totalPrice  Int               @map("total_price")
+  status      TransactionStatus @default(PENDING)
+  paymentProof String?           @map("payment_proof")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+event    Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
 }
