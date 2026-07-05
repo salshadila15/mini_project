@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { formatIdr, formatDate } from '../lib/auth-storage';
 import ReviewSection from '../components/ReviewSection';
 import type { Event, EventResponse } from '../types/event';
-import type { UserProfile } from '../types/auth';
 
 type EventDetailResponse = {
   message: string;
@@ -17,7 +16,7 @@ type EventDetailResponse = {
 function EventDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, refreshProfile } = useAuth();
+  const { user } = useAuth();
 
   const [event, setEvent] = useState<EventDetailResponse['data'] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,51 +98,51 @@ function EventDetail() {
     }
   };
 
-  const handleRegister = async () => {
-    if (!user) {
-      navigate('/login', { state: { from: location.pathname } });
-      return;
-    }
+  // const handleRegister = async () => {
+  //   if (!user) {
+  //     navigate('/login', { state: { from: location.pathname } });
+  //     return;
+  //   }
 
-    if (!event) return;
+  //   if (!event) return;
 
-    if (quantity > event.availableSeats) {
-      setRegistrationError(`Hanya tersedia ${event.availableSeats} kursi`);
-      return;
-    }
+  //   if (quantity > event.availableSeats) {
+  //     setRegistrationError(`Hanya tersedia ${event.availableSeats} kursi`);
+  //     return;
+  //   }
 
-    setIsRegistering(true);
-    setRegistrationError('');
+  //   setIsRegistering(true);
+  //   setRegistrationError('');
 
-    try {
-      await axiosInstance.post(`/api/events/${event.id}/register`, {
-        quantity,
-        pointsToUse,
-        ...(selectedCouponId && { couponId: selectedCouponId }),
-      });
+  //   try {
+  //     await axiosInstance.post(`/api/events/${event.id}/register`, {
+  //       quantity,
+  //       pointsToUse,
+  //       ...(selectedCouponId && { couponId: selectedCouponId }),
+  //     });
 
-      alert('Registrasi berhasil! Terima kasih telah mendaftar event ini.');
-      await refreshProfile();
-      navigate('/profile');
-    } catch (err: unknown) {
-      const message =
-        err &&
-        typeof err === 'object' &&
-        'response' in err &&
-        err.response &&
-        typeof err.response === 'object' &&
-        'data' in err.response &&
-        err.response.data &&
-        typeof err.response.data === 'object' &&
-        'message' in err.response.data &&
-        typeof err.response.data.message === 'string'
-          ? err.response.data.message
-          : 'Registrasi gagal';
-      setRegistrationError(message);
-    } finally {
-      setIsRegistering(false);
-    }
-  };
+  //     alert('Registrasi berhasil! Terima kasih telah mendaftar event ini.');
+  //     await refreshProfile();
+  //     navigate('/profile');
+  //   } catch (err: unknown) {
+  //     const message =
+  //       err &&
+  //       typeof err === 'object' &&
+  //       'response' in err &&
+  //       err.response &&
+  //       typeof err.response === 'object' &&
+  //       'data' in err.response &&
+  //       err.response.data &&
+  //       typeof err.response.data === 'object' &&
+  //       'message' in err.response.data &&
+  //       typeof err.response.data.message === 'string'
+  //         ? err.response.data.message
+  //         : 'Registrasi gagal';
+  //     setRegistrationError(message);
+  //   } finally {
+  //     setIsRegistering(false);
+  //   }
+  // };
 
   const handleEditRedirect = (id: number) => {
     navigate(`/organizer/event/${id}/edit`);
