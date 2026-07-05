@@ -11,6 +11,7 @@ import {
   REFERRAL_POINTS,
 } from '../utils/referral';
 import { getAvailableFromEntry } from '../utils/points';
+import SendMail from '../helpers/send-mail';
 
 type RegisterInput = {
   name: string;
@@ -24,7 +25,7 @@ const AuthService = {
   register: async (data: RegisterInput) => {
     const { name, email, password, role, referralCode } = data;
 
-    return await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const existingUser = await tx.user.findUnique({
         where: { email },
       });
@@ -76,6 +77,7 @@ const AuthService = {
           data: {
             userId: referrer.id,
             amount: REFERRAL_POINTS,
+          // @ts-ignore
             expiresAt,
           },
         });
@@ -99,6 +101,22 @@ const AuthService = {
         ...(welcomeCoupon && { welcomeCoupon }),
       };
     });
+
+    if (result && result.email) {
+      const sender = {
+        address: "admin@eventhub.com",
+        name: "EventHub Admin"
+      };
+
+      SendMail(
+        sender,
+        [result.email],
+        "Welcome to EventHub!",
+        `Hello ${result.name || 'User'}, welcome to EventHub! We're excited to have you on board. Start exploring events and enjoy your experience!`
+      ).catch((err) => console.error('Error sending email:', err));
+    }
+    
+    return result;
   },
 
   login: async (data: { email: string; password: string }) => {

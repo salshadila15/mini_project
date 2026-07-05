@@ -4,6 +4,7 @@ import PointsController, { ReferralController } from '../controllers/points.cont
 import AuthMiddleware from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validator.middleware';
 import AuthValidator from '../validators/auth.validator';
+import { loginSchema } from '../schemas/auth.schema';
 
 const AuthRouter = Router();
 

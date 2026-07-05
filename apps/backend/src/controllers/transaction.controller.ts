@@ -1,6 +1,7 @@
 import prisma from '../lib/prisma';
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import { REFERRAL_DISCOUNT_PERCENT } from '../utils/referral';
 
 // 1. MEMBUAT TRANSAKSI (STATUS: PENDING)
 export const createTransaction = async (req: any, res: Response) => {
@@ -27,6 +28,7 @@ console.log("Isi userId", userId);
 
     // Hitung total harga
     const totalPrice = event.price * quantity;
+    const status = totalPrice === 0 ? 'SUCCESS' : 'PENDING'; // Jika gratis, langsung sukses
 
     // Buat data transaksi pending
     const transaction = await prisma.transaction.create({
@@ -34,7 +36,7 @@ console.log("Isi userId", userId);
         userId: Number(userId),
         eventId: Number(eventId),
         quantity: Number(quantity),
-        totalPrice,
+        totalPrice: totalPrice,
         status: 'PENDING'
       }
     });

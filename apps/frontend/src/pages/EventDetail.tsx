@@ -221,9 +221,17 @@ function EventDetail() {
             </div>
 
             <img
-              src={'http://localhost:8000/uploads/' + event.image}
+              src={
+                event.image?.startsWith('http')
+                ? event.image
+                : 'http://localhost:8000/uploads/' + event.image
+              }
               alt={event.name}
               className="mb-6 h-64 w-full rounded-lg object-cover"
+              onError={(e) => {
+                // Fallback jika url gambar bermasalah
+                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=1200&q=80'; 
+              }}
             />
 
             <h1 className="text-3xl font-bold text-slate-900">{event.name}</h1>

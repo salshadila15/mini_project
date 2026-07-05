@@ -2,13 +2,17 @@ import 'dotenv/config';
 import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { ZodError } from 'zod';
-import ExampleRouter from './routes/example.route';
 import AuthRouter from './routes/auth.route';
 import EventRouter from './routes/event.route';
 import TransactionRouter from './routes/transaction.route'; // Import route transaksi
-import { formatZodIssues } from './middlewares/validator.middleware';
+import { formatZodIssues, validate } from './middlewares/validator.middleware';
 import path from 'path';
 import fs from 'fs';
+import sendMail from './helpers/send-mail';
+import { loginSchema } from './schemas/auth.schema';
+import SendMail from './helpers/send-mail';
+import cloudinary from './helpers/cloudinary'; 
+import { upload } from './middlewares/multer.middleware';
 
 const app: Application = express();
 const PORT = Number(process.env.PORT) || 8000;
@@ -27,7 +31,68 @@ app.get('/ping', (_req: Request, res: Response) => {
   res.send('pong!');
 });
 
-app.use('/api/example', ExampleRouter);
+app.post('/send-email', async (req: Request, res: Response) => {
+  try {
+    const { name, email } = req.body;
+
+    if (!email || !name) {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: {
+          email: !email ? ['Email wajib diisi'] : undefined,
+          name: !name ? ['Nama wajib diisi'] : undefined,
+        }
+      });
+  }
+
+  const sender = {
+    address: "admin@eventhub.com",
+    name: "EventHub Admin"
+  };
+
+  await SendMail(
+    sender,
+    [email],
+    "Welcome to EventHub",
+    `Hello ${name}, welcome to EventHub!`,
+  );
+
+  res.json({ message: 'Email sent successfully' });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+app.post('/upload-test', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Tidak ada file yang diunggah' });
+  }
+
+  const result = await cloudinary.uploader.upload(req.file.path, {
+    folder: 'eventhub-images',
+  });
+
+  fs.unlinkSync(req.file.path); // Hapus file lokal setelah diunggah ke Cloudinary
+
+  return res.json({
+    message: 'Upload ke Cloudinary berhasil',
+    secure_url: result.secure_url,
+    public_id: result.public_id,
+  });
+
+} catch (error) {
+  console.error("Error upload ke Cloudinary", error);
+
+  if (req.file && fs.existsSync(req.file.path)) {
+    fs.unlinkSync(req.file.path);
+  }
+
+  return res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
 app.use('/api/auth', AuthRouter);
 app.use('/api/events', EventRouter);
 app.use('/api/transactions', TransactionRouter); // Import route transaksi

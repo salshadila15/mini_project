@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axiosInstance from '../lib/http';
 import { formatIdr, formatDate } from '../lib/auth-storage';
 import type { Event } from '../types/event';
+import EventCarousel from '../components/EventCarousel';
 
 type EventsResponse = {
   message: string;
@@ -37,7 +38,7 @@ function Home() {
     totalPages: 0,
   });
 
-  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const searchTimeoutRef = useRef<number | undefined>(undefined);
 
   // Load filters
   useEffect(() => {
@@ -99,7 +100,7 @@ function Home() {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    searchTimeoutRef.current = setTimeout(() => {
+    searchTimeoutRef.current = window.setTimeout(() => {
       setPage(1);
       void loadEvents(search, category, location, 1);
     }, 500);
@@ -120,6 +121,7 @@ function Home() {
 
   return (
     <div className="space-y-6 py-8">
+      {/* 1. Header Judul */}
       <div>
         <h1 className="text-4xl font-bold text-slate-900">
           Jelajahi Event Seru
@@ -129,12 +131,18 @@ function Home() {
         </p>
       </div>
 
+      {/* 2. Banner Carousel Otomatis */}
+      {!isLoading && events.length > 0 && (
+        <EventCarousel events={events} />
+      )}
+
       {error && (
         <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
+      {/* 3. Panel Filter & Pencarian */}
       <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>
           <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -209,6 +217,7 @@ function Home() {
         </div>
       </div>
 
+      {/* 4. Konten Utama (Loading / Empty State / List Cards) */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
@@ -250,8 +259,12 @@ function Home() {
                         {event.category}
                       </p>
                     </div>
-                    <span className="ml-2 inline-block rounded-lg bg-indigo-100 px-2 py-1 text-sm font-medium text-indigo-700">
-                      {formatIdr(event.price)}
+                    <span className={`ml-2 inline-block rounded-lg px-2 py-1 text-sm font-medium ${
+                      event.price === 0
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-indigo-100 text-indigo-700'
+                    }`}>
+                      {event.price === 0 ? 'Free' : formatIdr(event.price)}
                     </span>
                   </div>
 
@@ -327,6 +340,7 @@ function Home() {
             ))}
           </div>
 
+          {/* 5. Bagian Pagination */}
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4">
               <div className="text-sm text-slate-600">

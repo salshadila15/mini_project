@@ -1,4 +1,6 @@
 import prisma from '../lib/prisma';
+import cloudinary from '../helpers/cloudinary';
+import fs from 'fs';
 
 export type CreateEventInput = {
   name: string;
@@ -54,6 +56,7 @@ const EventService = {
           location: true,
           category: true,
           availableSeats: true,
+          image: true,
           organizer: { select: { id: true, name: true, email: true } },
           createdAt: true,
         },
@@ -95,6 +98,7 @@ const EventService = {
     return events.map((e) => e.location).filter(Boolean).sort();
   },
 
+// 💡 Ganti fungsi createEvent asli kamu dengan yang sudah terintegrasi Cloudinary ini:
   createEvent: async (organizerId: number, data: CreateEventInput, file?: Express.Multer.File) => {
     const eventDate = new Date(data.date);
 
@@ -102,19 +106,34 @@ const EventService = {
       throw new Error('Invalid event date');
     }
 
-    const imageName = file ? file.filename : null;
+    let imageUrl: string | null = null;
+
+    // ☁️ Integrasi Cloudinary untuk Create
+    if (file) {
+      try {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: 'eventhub-events',
+          resource_type: 'auto',
+        });
+        imageUrl = result.secure_url; // Ambil URL dari Cloudinary
+        fs.unlinkSync(file.path);     // Hapus file lokal
+      } catch (error) {
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        throw new Error('Gagal mengunggah gambar ke Cloudinary');
+      }
+    }
 
     return prisma.event.create({
       data: {
         name: data.name,
         description: data.description,
-        price: data.price,
+        price: Number(data.price), // Pastikan bertipe Number
         date: eventDate,
         location: data.location,
         category: data.category,
-        availableSeats: data.availableSeats,
+        availableSeats: Number(data.availableSeats), // Pastikan bertipe Number
         organizerId,
-        image: imageName, 
+        image: imageUrl, // 👈 Pasang URL Cloudinary di database
       },
       select: {
         id: true,
@@ -169,15 +188,14 @@ const EventService = {
         image: true,
         createdAt: true,
         updatedAt: true,
-
-      organizer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+        organizer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-    },
     });
 
     if (!event) {
@@ -187,6 +205,7 @@ const EventService = {
     return event;
   },
 
+  // 💡 Ganti fungsi updateEvent asli kamu dengan yang sudah terintegrasi Cloudinary ini:
   updateEvent: async (
     eventId: number,
     organizerId: number,
@@ -209,7 +228,23 @@ const EventService = {
       throw new Error('Forbidden: You can only edit your own events');
     }
 
-    const imageName = file ? file.filename : event.image;
+    let imageUrl: string | null = event.image;
+
+    // ☁️ Integrasi Cloudinary untuk Update Gambar Baru
+    if (file) {
+      try {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: 'eventhub-events',
+          resource_type: 'auto',
+        });
+        imageUrl = result.secure_url;
+        fs.unlinkSync(file.path);
+      } catch (error) {
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        throw new Error('Gagal mengunggah gambar baru ke Cloudinary');
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     if (data.name) updateData.name = data.name;
     if (data.description) updateData.description = data.description;
@@ -219,7 +254,9 @@ const EventService = {
     if (data.category) updateData.category = data.category;
     if (data.availableSeats !== undefined)
       updateData.availableSeats = Number(data.availableSeats);
-    if (imageName) updateData.image = imageName;
+    
+    // Pasang URL gambar (baik yang baru diupload maupun yang lama)
+    updateData.image = imageUrl;
 
     return prisma.event.update({
       where: { id: eventId },
@@ -325,10 +362,13 @@ const EventService = {
         throw new Error('Invalid points redemption');
       }
 
+      const registrationStatus = finalPrice === 0 ? 'confirmed' : 'pending';
+
       const registration = await tx.eventRegistration.create({
         data: {
           userId,
           eventId,
+          status: registrationStatus,
           quantity,
           price,
           totalPrice,
@@ -342,6 +382,7 @@ const EventService = {
           totalPrice: true,
           pointsUsed: true,
           createdAt: true,
+          status: true,
         },
       });
 
@@ -437,4 +478,5 @@ const EventService = {
   },
 };
 
+// 💡 Cukup export langsung objek EventService-nya tanpa dibungkus Class lagi
 export default EventService;
