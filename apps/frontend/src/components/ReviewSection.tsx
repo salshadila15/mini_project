@@ -30,7 +30,7 @@ function ReviewSection({ eventId }: ReviewSectionProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userReview, setUserReview] = useState<EventReview | null>(null);
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, _setCurrentPage] = useState(1);
   const limit = 10;
 
   useEffect(() => {

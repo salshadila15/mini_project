@@ -6,8 +6,6 @@ import type { Event, EventRegistration, EventStats } from '../../types/event';
 import {
   LineChart,
   Line,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -25,7 +23,7 @@ function OrganizerDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  // const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const [formData, setFormData] = useState({
